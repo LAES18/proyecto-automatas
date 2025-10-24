@@ -7,7 +7,21 @@ require('dotenv').config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// Chequeo de variables de entorno críticas
+['MYSQLHOST','MYSQLUSER','MYSQLDATABASE','JWT_SECRET'].forEach((key) => {
+  if (!process.env[key]) {
+    console.warn(`ADVERTENCIA: La variable de entorno ${key} no está definida.`);
+  }
+});
+
+// Configuración de CORS para producción
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  methods: ['GET','POST','PUT','DELETE'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+
 app.use(express.static('public'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_jwt_cambiar_en_produccion';
@@ -331,6 +345,14 @@ app.get('/api/lectura-actual', authMiddleware, async (req, res) => {
   }
 });
 
+// Manejo global de errores Express
+app.use((err, req, res, next) => {
+  console.error('Error global:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+// Comentario para Railway
+// Railway usará process.env.PORT automáticamente
 const PORT = process.env.PORT || 3000;
 
 initDB().then(() => {
